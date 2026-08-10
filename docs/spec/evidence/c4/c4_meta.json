@@ -1,0 +1,15 @@
+{
+  "package_version": "2.0.0a1",
+  "rust_version": "2.0.0-alpha.1",
+  "build_features": [
+    "p1-scaffold",
+    "p2-keypoint-bindings",
+    "p2-pose-bindings",
+    "p3-vitals-bindings",
+    "p3.5-bfld-bindings"
+  ],
+  "fs_hz": 100.0,
+  "n_subcarriers": 56,
+  "seed": 20260810,
+  "n_rows": 86
+}
