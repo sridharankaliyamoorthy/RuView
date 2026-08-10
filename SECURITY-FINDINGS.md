@@ -25,6 +25,7 @@ testing was performed against any live system.
 | SEC-010 | `prompt-shield` capability claim overstates a 64-frame duplicate check | **Low** (misrepresentation) |
 | SEC-011 | Deterministic dev signing key used by default (RuField surface) | **Medium** |
 | SEC-012 | `environment: "production"` reported while serving simulated data | **Low** |
+| SEC-013 | Generated session secret lands outside `.gitignore` on a normal local run | **Medium** |
 
 ---
 
@@ -348,6 +349,50 @@ Note also the **third version number**: `0.3.5` here, against `2.0.0a1` on PyPI 
 
 ---
 
+## SEC-013 — Generated session secret is not gitignored on a normal run · **Medium**
+
+**Found by tripping over it.** After running the server for the C7 evidence, an
+untracked file appeared:
+
+```
+$ git status --short
+?? v2/data/session-secret
+$ ls -la v2/data/session-secret
+-rw------- 1 root root 43 ...        # 43 random bytes, mode 0600
+```
+
+This is the browser session signing secret, generated at startup
+(`browser_session.rs:319`, logged as `browser session secret: generated
+path=data/session-secret`).
+
+**Why it matters.** `.gitignore:310` already anticipates this file:
+
+```
+# sensing-server runtime artifacts written by its test suite (trained model
+# snapshots + the generated session-secret) — never tracked
+v2/crates/wifi-densepose-sensing-server/data/
+```
+
+But that path only matches a run whose working directory is the **crate**
+directory — which is how the test suite invokes it. The **documented** way to
+start the server is `cd v2 && ./target/release/sensing-server`, and the secret
+then lands at `v2/data/session-secret`, which no rule matched.
+
+So a developer who runs the server the documented way and then does `git add -A`
+commits a live session signing secret to the repository. The author clearly
+intended to prevent exactly this and the rule simply does not reach the real path.
+Anyone with that secret can forge browser session tokens against that deployment.
+
+**Confirmed by the near-miss in this audit:** a git hook prompted to commit the
+untracked file. It was not committed; the secret was shredded and the ignore rule
+widened to `**/data/session-secret` in this branch.
+
+**Mitigation.** Match the file by name wherever it is written (done here), and
+ideally write it under a path that is unambiguously ignored, or to the OS keyring
+/ an env var rather than the working tree.
+
+---
+
 ## Positives worth recording
 
 A security review that only lists defects misrepresents this codebase.
@@ -385,5 +430,5 @@ A security review that only lists defects misrepresents this codebase.
 1. SEC-003 (unsigned cog execution) and SEC-002 (credentials) — before any hardware pilot.
 2. SEC-004 (auth default) — before anything is reachable off localhost.
 3. SEC-005 / SEC-006 — before any health-adjacent integration.
-4. SEC-007, SEC-008, SEC-011 — before a client deployment.
+4. SEC-007, SEC-008, SEC-011, SEC-013 — before a client deployment.
 5. SEC-001 — before anyone else opens this repo in an agent.

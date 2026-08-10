@@ -308,4 +308,11 @@ ruvector.db
 # sensing-server runtime artifacts written by its test suite (trained model
 # snapshots + the generated session-secret) — never tracked
 v2/crates/wifi-densepose-sensing-server/data/
+# The rule above only covers a run whose cwd is the crate directory. The
+# documented way to start the server is `cd v2 && ./target/release/sensing-server`,
+# which writes the browser session signing secret to v2/data/session-secret
+# instead — 43 random bytes, mode 0600. Untracked and previously un-ignored, so a
+# `git add -A` after a normal local run would have committed a live secret.
+# Match it wherever the server is started from.
+**/data/session-secret
 *.proptest-regressions

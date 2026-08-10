@@ -62,6 +62,7 @@ Verified by command, not by reading the README.
 | 12 | **The Docker default serves simulated data while `docker-compose.yml` and the entrypoint both document it as failing hard with `exit 78`.** No `exit(78)` exists in the server. Issue #1004 superseded the #937 behaviour in code; the docs were never updated. | **Medium** | C7 |
 | 13 | **A deterministic dev signing key is used by default** — `WDP_RUFIELD_SIGNING_SEED` unset means signatures from an unconfigured deployment prove nothing. | **Medium** | SEC-011 |
 | 14 | **`/api/v1/info` reports `environment: "production"` while serving simulated data**, and gives a third version number (`0.3.5`) against the package's `2.0.0a1`. | **Low** | SEC-012 |
+| 15 | **The generated session signing secret is not gitignored on a normal local run.** The existing rule only covers a crate-cwd run; the documented `cd v2 && ./sensing-server` writes it to `v2/data/session-secret`, unmatched. A `git add -A` would commit a live secret. | **Medium** | SEC-013 |
 
 ---
 
