@@ -58,6 +58,7 @@ Verified by command, not by reading the README.
 | 9 | **MQTT defaults to plaintext 1883**, mDNS-advertised, no topic ACLs. | **Medium** | SEC-007 |
 | 10 | **82.69% MM-Fi is a cited external result**, not reproducible from this repo — the dataset is absent and the weights are on Hugging Face. | **Medium (framing)** | C6 |
 | 11 | **`prompt-shield` "blocks replay and injection attacks"** is a 64-frame duplicate-hash check with no nonce or freshness. | **Low (misrepresentation)** | SEC-010 |
+| 12 | **The Docker default serves simulated data while `docker-compose.yml` and the entrypoint both document it as failing hard with `exit 78`.** No `exit(78)` exists in the server. Issue #1004 superseded the #937 behaviour in code; the docs were never updated. | **Medium** | C7 |
 
 ---
 
@@ -205,7 +206,7 @@ Stated so no one mistakes silence for a pass.
 
 | Item | Why | What it would take |
 |---|---|---|
-| **C7** — Docker API responses, and **whether simulated data is labelled anywhere a user sees it** | No Docker daemon in this container | A machine with dockerd. **This is the most important open item** — the README admits the Docker image serves simulated data. |
+| **C7 live probe** — does the *dashboard* prominently label simulated data? | Daemon started successfully, but a full Rust image build needed more disk than the 12 GB remaining after the native build | A machine with ~40 GB free: `docker compose up`, open the dashboard with `CSI_SOURCE` unset, and look. The API-level labelling question is **answered** (source is exposed on 6+ endpoints); the UI prominence is not. |
 | **C8** — model loading, 8 KB int4 claim | `huggingface.co` 403 at the proxy (policy denial, logged) | Unrestricted egress |
 | **C6** — MM-Fi 82.69% reproduction | Dataset absent from repo; weights on HF | MM-Fi dataset access + egress |
 | **All RF / hardware claims** — through-wall, range, real-world accuracy | No ESP32, no RF environment | Real silicon. Per the repo's own rule, a successful build is not hardware evidence. |

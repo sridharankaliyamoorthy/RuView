@@ -10,8 +10,9 @@
 
 **Toolchain (measured):** host rustc/cargo 1.94.1, but the repo pins
 `channel = "1.89"` in `v2/rust-toolchain.toml` — **1.89 is what actually built the
-workspace** · Python 3.11.15 · node v22.22.2 · uv 0.8.17 · Docker CLI 29.3.1
-(**daemon down**) · audit venv numpy 2.4.6 / scipy 1.17.1 / matplotlib 3.11.1.
+workspace** · Python 3.11.15 · node v22.22.2 · uv 0.8.17 · Docker 29.3.1 (daemon was
+down initially; started successfully later — see C7) · audit venv numpy 2.4.6 / scipy
+1.17.1 / matplotlib 3.11.1.
 
 **Egress (measured):** pypi + files.pythonhosted + index.crates.io + registry.npmjs
 reachable · github.com reachable · **huggingface.co 403 CONNECT (proxy policy denial)**
@@ -29,7 +30,7 @@ reachable · github.com reachable · **huggingface.co 403 CONNECT (proxy policy 
 | C4 | Vital signs from CSI | **PARTIAL** — breathing excellent; heart real but broken in the release |
 | C5 | Pose stub honestly disclosed | **CONFIRMED** — repo's own honesty holds |
 | C6 | MM-Fi 82.69% | **UNTESTABLE** — cited external result, not a repo capability |
-| C7 | Docker path + simulated-data labelling | **UNTESTABLE** (daemon down) — static audit delivered |
+| C7 | Docker path + simulated-data labelling | **PARTIAL** — default serves simulated data while its own docs claim it fails hard |
 | C8 | Model loading / 8 KB int4 | **UNTESTABLE** — HF blocked by proxy policy |
 | C9 | Egress inventory | **CONFIRMED** — 3 default-on external hosts identified |
 | C10 | Honesty audit | **PARTIAL** — README honest; catalog and firmware docs are not |
@@ -314,14 +315,72 @@ $ docker info
 failed to connect to the docker API at unix:///var/run/docker.sock: no such file
 ```
 
-**Verdict: UNTESTABLE (no daemon in this container).** The API-response and
-simulated-data-labelling questions — *does the UI distinguish simulated from live
-anywhere a user would see it?* — remain **open and unverified**. Given the README's
-own admission that "The Docker image runs with simulated data for evaluation", this is
-the single most important untested item for a demo-to-client scenario, and it should
-be closed before RuView is shown to anyone. `docker/` contains `Dockerfile.rust`,
-`Dockerfile.python`, `docker-compose.yml`, `docker-entrypoint.sh`, `otel-compose.yml`
-and `otel-collector.yaml` — the OTel pair is an egress path and is carried into C9.
+The daemon was subsequently started successfully (`docker info` → `29.3.1`), but a full
+Rust image build was not attempted: the native workspace build already consumed 17 GB
+and only 12 GB of disk remained. **The live API probe was not run.** What follows is a
+source-level answer to the question that actually mattered.
+
+**Verdict: PARTIAL — the labelling question is answered; the live probe is not.**
+
+### The default Docker config serves simulated data, and its own docs say it doesn't
+
+`docker/docker-compose.yml` documents its default as:
+
+> `auto` (default) — probe for ESP32 UDP then host WiFi; **fail hard with exit 78 if
+> neither is detected**. Synthetic data is no longer a silent fallback (issue #937 fix)
+> — operators must opt in.
+
+`docker/docker-entrypoint.sh:15` repeats it: *"auto — try ESP32 then Windows WiFi,
+**fail-loud if no source**"*.
+
+**The code does the opposite.** `wifi-densepose-sensing-server/src/main.rs:3102`,
+`plan_source("auto", esp32=false, wifi=false)`:
+
+```rust
+// No real source *yet*. Serve simulated data, but ALSO bind UDP
+// so the receiver can promote to esp32 when the first real
+// frame arrives (issue #1004). Never latch on simulate.
+SourcePlan { initial_source: "simulated", bind_udp: true,
+             run_simulator: true, run_wifi: false }
+```
+
+There is **no `exit(78)` anywhere in the sensing server**. Issue #1004 superseded the
+#937 behaviour for a defensible engineering reason — the old fail-hard path meant real
+CSI arriving a few seconds after boot was ignored forever — but **the compose file and
+entrypoint documentation were never updated**. An operator reading the compose file
+believes an unconfigured server refuses to start. It actually starts and serves
+synthetic poses.
+
+The code comment three lines above is unintentionally self-describing:
+
+> *"The UI looked live; the data was fake. This is the exact 'where's the real data?'
+> failure class the project fights."*
+
+The project fixed that failure in code and reintroduced it in documentation.
+
+### Is simulated data labelled? At the API, yes.
+
+`main.rs` returns `"source": s.effective_source()` on at least six endpoints
+(`:3532, :4601, :4666, :4690, :4700`), and `effective_source()` reverts `esp32` →
+`esp32:offline` when frames stop. So an API consumer can always tell. `dashboard/src/`
+components reference simulated/demo mode, suggesting UI surfacing exists — **but its
+visual prominence is unverified**, and that is the part a client demo turns on.
+
+### Compose security posture — genuinely good
+
+`ports` bind REST/WS to **`127.0.0.1` only** (UDP 5005 is LAN-wide by necessity and is
+commented as a deliberate choice); `security_opt: no-new-privileges:true`;
+`cap_drop: ALL`; CPU and memory limits set. This is a well-configured compose file, and
+it partially offsets SEC-004 for the Docker path specifically — the unauthenticated API
+is at least not exposed off-host by default.
+
+### Still open
+
+**Run the stack and look at the dashboard with `CSI_SOURCE` unset.** If the UI shows
+plausible skeletons and vitals without a prominent "SIMULATED" indicator, that is a
+demo which misleads a client, and the stale compose documentation makes it more likely
+the operator does not realise it. This remains the highest-value single unfinished
+check in the audit.
 
 ---
 
