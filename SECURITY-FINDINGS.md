@@ -101,8 +101,22 @@ install, no `npx @ruvnet/ruview`, no claude-flow tool call.
 commands, logs, issues, or commits."* Its own provisioning tool's headline example
 violates its own rule.
 
+**The documented workaround is also weak.** `provision.py:24-37` describes a
+per-port JSON state file it merges from, which lets the password be pre-seeded
+instead of passed on argv. That keeps it out of `/proc` and shell history, but:
+
+- the state file holds the PSK **in plaintext indefinitely** at
+  `~/.config/wifi-densepose/esp32-provision-state/<port>.json`;
+- `save_state` (`:147-157`) writes a temp file at the **default umask** and
+  `os.replace`s it over the target, so the file's permissions are **reset on every
+  write** — a `chmod 600` applied by the operator does not survive the next run,
+  and the default is typically `0644`, i.e. world-readable;
+- `password` is in the merged key list (`:104`), so it is always persisted.
+
 **Mitigation.** Read the password from stdin/`getpass` or an env var, never argv.
-Enable NVS encryption and document it as mandatory. Change the README example.
+Create the state file with `os.open(..., 0o600)` and preserve mode across the
+atomic replace. Enable NVS encryption and document it as mandatory. Change the
+README example.
 
 ---
 
