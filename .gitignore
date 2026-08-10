@@ -187,6 +187,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+# Isolated venv used by the verification audit (scripts/audit, docs/spec).
+# Never commit it: ~337 MB, and it contains third-party compiled artifacts
+# (wifi_densepose/_native.abi3.so) pulled from PyPI. Recreate with:
+#   python -m venv .audit-venv
+#   .audit-venv/bin/pip install numpy scipy matplotlib ruview
+.audit-venv/
 
 # Spyder project settings
 .spyderproject
