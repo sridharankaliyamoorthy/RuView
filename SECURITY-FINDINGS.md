@@ -5,10 +5,11 @@
 embedded/edge codebase. Static review plus the runtime probes recorded in
 `docs/spec/claim-matrix.md`.
 
-**Scope limits:** no ESP32 hardware, no running Docker daemon, no reachable
-Cognitum or Hugging Face endpoint. Everything below is source-level unless a
-command output is shown. No penetration testing was performed against any live
-system.
+**Scope limits:** no ESP32 hardware, no reachable Cognitum or Hugging Face
+endpoint. Everything below is source-level unless a command output is shown.
+SEC-004, SEC-009, SEC-011 and SEC-012 were additionally **confirmed at runtime**
+against a live `sensing-server` — see `docs/spec/evidence/c7/`. No penetration
+testing was performed against any live system.
 
 | ID | Finding | Severity |
 |---|---|---|
@@ -22,6 +23,8 @@ system.
 | SEC-008 | Python dependencies floor-pinned (`>=`), no lockfile | **Medium** |
 | SEC-009 | Default-on egress to Google Cloud Storage | **Low–Medium** |
 | SEC-010 | `prompt-shield` capability claim overstates a 64-frame duplicate check | **Low** (misrepresentation) |
+| SEC-011 | Deterministic dev signing key used by default (RuField surface) | **Medium** |
+| SEC-012 | `environment: "production"` reported while serving simulated data | **Low** |
 
 ---
 
@@ -140,6 +143,16 @@ fail-closed verifier. Treat the current cog channel as unauthenticated code deli
 :9   deployment-time switch with **no default authentication change**.
 :60  pub const API_TOKEN_ENV: &str = "RUVIEW_API_TOKEN";
 ```
+
+**Confirmed at runtime.** Against a live server with no token set:
+
+```
+$ curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/api/v1/status
+200
+INFO API auth: OFF — /api/v1/* is unauthenticated. Set RUVIEW_API_TOKEN=<token> ...
+```
+
+Full sensing data returned with no credential.
 
 **Why it matters.** Authentication is opt-in. An operator who follows the quickstart
 and runs the server exposes the sensing REST + WebSocket surface — presence, motion,
@@ -285,6 +298,56 @@ frames from the sensor.
 
 ---
 
+## SEC-011 — Deterministic dev signing key by default · **Medium**
+
+**Evidence.** Observed at runtime on an unconfigured server
+(`docs/spec/evidence/c7/startup.log`):
+
+```
+WARN ADR-262 P3: WDP_RUFIELD_SIGNING_SEED unset/invalid — RuField surface using the
+     DETERMINISTIC DEV signing key. This is a dev/sensing key pending the ADR-262 §8
+     Q1 (P2) key-ownership decision; set WDP_RUFIELD_SIGNING_SEED (64-hex or 32-byte
+     value) for a real deployment.
+```
+
+**Why it matters.** A key derived from a constant in public source is reproducible
+by anyone who can read the repo. Signatures produced by a default deployment
+therefore authenticate nothing — they can be forged at will. This sits directly
+alongside SEC-003 (cog signing is a no-op): two of the three signing surfaces in
+the product are non-functional in their default state, while the README presents
+cryptographic attestation as a headline feature.
+
+**Credit.** The warning is loud, names the ADR, states the consequence, and gives
+the exact fix. That is the right way to ship a known-insecure default — but it is
+still an insecure default.
+
+**Mitigation.** Set `WDP_RUFIELD_SIGNING_SEED` from a real CSPRNG in every
+deployment; refuse to start without it in production builds.
+
+---
+
+## SEC-012 — `environment: "production"` while serving synthetic data · **Low**
+
+**Evidence.** `GET /api/v1/info` on an unconfigured server
+(`docs/spec/evidence/c7/resp_api_v1_info.json`):
+
+```json
+{ "backend": "rust", "environment": "production",
+  "source": "simulated", "version": "0.3.5", ... }
+```
+
+**Why it matters.** `environment` is hardcoded to `production` regardless of actual
+state. Any monitoring, alerting, or client-side gating that keys off it will treat
+a simulated demo as a production deployment. The adjacent `"source": "simulated"`
+is correct, so the two fields directly contradict each other.
+
+Note also the **third version number**: `0.3.5` here, against `2.0.0a1` on PyPI and
+`2.0.0-alpha.1` for the Rust core.
+
+**Mitigation.** Derive `environment` from configuration, or remove the field.
+
+---
+
 ## Positives worth recording
 
 A security review that only lists defects misrepresents this codebase.
@@ -305,6 +368,15 @@ A security review that only lists defects misrepresents this codebase.
 - **`bearer_auth.rs` documents its own past security failure in source**, with measured
   consequences. That is unusually honest engineering.
 - **Submodules pinned to exact SHAs.**
+- **The runtime tells the truth about itself.** A default server logs, unprompted,
+  that it is serving simulated data, that API auth is off, that it is contacting a
+  GCS registry, and that it is using a dev signing key. Four of this report's
+  findings are disclosed by the software in its own startup log. That is rare.
+- **Simulated data is labelled end to end** — `"source":"simulated"` on every
+  data-bearing endpoint plus two persistent dashboard indicators (verified by
+  screenshot, `docs/spec/evidence/c7/`).
+- **Host-header validation is ON by default** — an explicit DNS-rebinding defence,
+  with `--disable-host-validation` opt-in rather than opt-out.
 - **The deterministic proof is not circular** — the regeneration path is behind an
   explicit `--generate-hash` flag.
 
@@ -313,5 +385,5 @@ A security review that only lists defects misrepresents this codebase.
 1. SEC-003 (unsigned cog execution) and SEC-002 (credentials) — before any hardware pilot.
 2. SEC-004 (auth default) — before anything is reachable off localhost.
 3. SEC-005 / SEC-006 — before any health-adjacent integration.
-4. SEC-007, SEC-008 — before a client deployment.
+4. SEC-007, SEC-008, SEC-011 — before a client deployment.
 5. SEC-001 — before anyone else opens this repo in an agent.

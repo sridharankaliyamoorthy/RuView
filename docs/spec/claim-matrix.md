@@ -30,7 +30,7 @@ reachable · github.com reachable · **huggingface.co 403 CONNECT (proxy policy 
 | C4 | Vital signs from CSI | **PARTIAL** — breathing excellent; heart real but broken in the release |
 | C5 | Pose stub honestly disclosed | **CONFIRMED** — repo's own honesty holds |
 | C6 | MM-Fi 82.69% | **UNTESTABLE** — cited external result, not a repo capability |
-| C7 | Docker path + simulated-data labelling | **PARTIAL** — default serves simulated data while its own docs claim it fails hard |
+| C7 | Docker path + simulated-data labelling | **CONFIRMED (labelling)** — ran the server: simulated data is marked on every endpoint + 2 UI indicators. Docs still wrongly claim `exit 78`. |
 | C8 | Model loading / 8 KB int4 | **UNTESTABLE** — HF blocked by proxy policy |
 | C9 | Egress inventory | **CONFIRMED** — 3 default-on external hosts identified |
 | C10 | Honesty audit | **PARTIAL** — README honest; catalog and firmware docs are not |
@@ -374,13 +374,70 @@ commented as a deliberate choice); `security_opt: no-new-privileges:true`;
 it partially offsets SEC-004 for the Docker path specifically — the unauthenticated API
 is at least not exposed off-host by default.
 
+### CLOSED at runtime — the server was actually run
+
+The `sensing-server` binary produced by the C1 run was started directly, skipping
+the Docker image entirely. Full evidence in **`docs/spec/evidence/c7/`** (raw JSON,
+screenshots, startup log).
+
+```
+$ cd v2 && ./target/debug/sensing-server --http-port 8080 --ui-path ../ui --bind-addr 127.0.0.1
+WARN No real CSI source at boot — serving SIMULATED data (tagged as 'simulated',
+     not production) while the UDP :5005 receiver stays bound. The server promotes
+     to live the instant a real frame arrives (issue #1004).
+INFO Data source: simulated (udp_receiver=true, simulator=true, wifi=false)
+```
+
+**The `exit 78` documentation is confirmed wrong** — the server starts and serves
+synthetic data. But the runtime behaviour is honest, and the labelling question
+resolves in the repo's favour:
+
+**API — every data-bearing endpoint carries the marker:**
+
+```
+/api/v1/status         "source":"simulated"
+/api/v1/info           "source":"simulated"
+/api/v1/pose/current   "source":"simulated"
+/api/v1/sensing/latest "source":"simulated"
+/api/v1/pose/stats     "source":"simulated"
+/api/v1/metrics        (none — CPU/mem only, not sensing data)
+```
+
+**Dashboard — two independent indicators**, both verified by screenshot at 1440px
+and at a 390×844 iPhone viewport: a persistent **`● Simulated`** pill in the header
+present on every tab, and an amber **"Data Source / SIMULATED / Server running
+without hardware"** card in the System Status grid. The Sensing tab adds an "About
+this data" panel disclosing the ESP32 node count.
+
+**So the answer to the question that mattered is: yes, it tells you.** Not loudly —
+the pill is small, the amber card low-contrast — but truthfully, persistently, and
+in two places. A client shown this demo is informed the data is synthetic. The
+concern I raised before running it does not hold.
+
+**Verdict upgraded: PARTIAL → CONFIRMED for labelling**, with the documentation
+defect (`exit 78`) retained as the standing finding.
+
+### Three things the run surfaced that source reading had not
+
+1. **SEC-011 — deterministic dev signing key by default.**
+   `WARN ADR-262 P3: WDP_RUFIELD_SIGNING_SEED unset/invalid — RuField surface using
+   the DETERMINISTIC DEV signing key.` Signatures from an unconfigured deployment
+   prove nothing.
+2. **SEC-012 — `"environment": "production"` while serving simulated data**
+   (`/api/v1/info`), alongside a third version number: `"version": "0.3.5"` against
+   the package's `2.0.0a1` and the Rust core's `2.0.0-alpha.1`.
+3. **C5 confirmed live.** `/api/v1/pose/current` returns a person at
+   `confidence: 0.9` whose **17 keypoints all carry `confidence: 0.0`** — the
+   `inference.rs:283` stub, visible through the API.
+
+Also: the adaptive classifier loads at **41.5% accuracy** by default
+(`3316 frames`), with no UI indication; and the web UI is **not responsive** —
+it clips horizontally at phone width.
+
 ### Still open
 
-**Run the stack and look at the dashboard with `CSI_SOURCE` unset.** If the UI shows
-plausible skeletons and vitals without a prominent "SIMULATED" indicator, that is a
-demo which misleads a client, and the stale compose documentation makes it more likely
-the operator does not realise it. This remains the highest-value single unfinished
-check in the audit.
+Only the Docker image path itself (build + `docker compose up`), which needs ~40 GB
+of free disk. The native run answers every question the Docker run would have.
 
 ---
 

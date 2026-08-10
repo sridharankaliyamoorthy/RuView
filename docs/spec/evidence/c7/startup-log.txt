@@ -1,0 +1,40 @@
+[2m2026-08-10T16:59:13.549076Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WiFi-DensePose Sensing Server (Rust + Axum + RuVector)
+[2m2026-08-10T16:59:13.549171Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m   HTTP:      http://localhost:8080
+[2m2026-08-10T16:59:13.549187Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m   WebSocket: ws://localhost:8765/ws/sensing
+[2m2026-08-10T16:59:13.549197Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m   UDP:       0.0.0.0:5005 (ESP32 CSI)
+[2m2026-08-10T16:59:13.549208Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m   UI path:   ../ui
+[2m2026-08-10T16:59:13.549218Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m   Source:    auto
+[2m2026-08-10T16:59:13.549246Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Auto-detecting data source (UDP :5005 bound either way)...
+[2m2026-08-10T16:59:15.551207Z[0m [33m WARN[0m [2msensing_server[0m[2m:[0m No real CSI source at boot — serving SIMULATED data (tagged as 'simulated', not production) while the UDP :5005 receiver stays bound. The server promotes to live the instant a real frame arrives (issue #1004). For an offline demo with no live promotion, pass --source simulated explicitly.
+[2m2026-08-10T16:59:15.551303Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Data source: simulated (udp_receiver=true, simulator=true, wifi=false)
+[2m2026-08-10T16:59:15.551321Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Vital sign detector sample rate: 10.0 Hz
+[2m2026-08-10T16:59:15.626845Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Discovered 0 model files, 2 recording files
+[2m2026-08-10T16:59:15.628141Z[0m [32m INFO[0m [2mwifi_densepose_sensing_server::browser_session[0m[2m:[0m browser session secret: generated [3mpath[0m[2m=[0mdata/session-secret
+[2m2026-08-10T16:59:15.628181Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Loaded runtime config: dedup_factor=3.00
+[2m2026-08-10T16:59:15.628194Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Edge module registry: enabled — upstream=https://storage.googleapis.com/cognitum-apps/app-registry.json ttl=3600s
+[2m2026-08-10T16:59:15.628364Z[0m [33m WARN[0m [2mwifi_densepose_sensing_server::rufield_surface[0m[2m:[0m ADR-262 P3: WDP_RUFIELD_SIGNING_SEED unset/invalid — RuField surface using the DETERMINISTIC DEV signing key. This is a dev/sensing key pending the ADR-262 §8 Q1 (P2) key-ownership decision; set WDP_RUFIELD_SIGNING_SEED (64-hex or 32-byte value) for a real deployment.
+[2m2026-08-10T16:59:15.629522Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Loaded adaptive classifier: 3316 frames, 41.5% accuracy
+[2m2026-08-10T16:59:15.629596Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Multistatic fusion guard: 60000 µs hard / 20000 µs soft (override via WDP_GUARD_INTERVAL_US / WDP_SOFT_GUARD_US, or WDP_TDM_SLOTS+WDP_TDM_SLOT_US)
+[2m2026-08-10T16:59:15.629972Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m API auth: OFF — /api/v1/* is unauthenticated. Set RUVIEW_API_TOKEN=<token> or RUVIEW_OAUTH_ISSUER=<issuer> to enforce auth.
+[2m2026-08-10T16:59:15.630344Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Host-header validation ON (3 entries; loopback names always included)
+[2m2026-08-10T16:59:15.630403Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Simulated data source active (tick=100ms)
+[2m2026-08-10T16:59:15.630455Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m UDP listening on 0.0.0.0:5005 for ESP32, MediaTek, Qualcomm CSI, and RTL8720F radar frames
+[2m2026-08-10T16:59:15.631503Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket server listening on 127.0.0.1:8765
+[2m2026-08-10T16:59:15.633277Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m HTTP server listening on 127.0.0.1:8080
+[2m2026-08-10T16:59:15.633324Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m Open http://localhost:8080/ui/index.html in your browser
+[2m2026-08-10T17:00:35.175058Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client connected (sensing)
+[2m2026-08-10T17:00:35.364895Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client connected (pose)
+[2m2026-08-10T17:00:35.556959Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client disconnected (sensing)
+[2m2026-08-10T17:00:35.557190Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client disconnected (pose)
+[2m2026-08-10T17:00:55.839565Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client connected (sensing)
+[2m2026-08-10T17:00:56.065178Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client connected (pose)
+[2m2026-08-10T17:00:56.507282Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client disconnected (pose)
+[2m2026-08-10T17:00:56.507353Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client disconnected (sensing)
+[2m2026-08-10T17:01:20.595796Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client connected (sensing)
+[2m2026-08-10T17:01:20.748478Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client connected (pose)
+[2m2026-08-10T17:01:21.150712Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client disconnected (sensing)
+[2m2026-08-10T17:01:21.152085Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client disconnected (pose)
+[2m2026-08-10T17:01:21.858835Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client connected (sensing)
+[2m2026-08-10T17:01:21.978979Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client connected (pose)
+[2m2026-08-10T17:01:22.490392Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client disconnected (pose)
+[2m2026-08-10T17:01:22.490502Z[0m [32m INFO[0m [2msensing_server[0m[2m:[0m WebSocket client disconnected (sensing)

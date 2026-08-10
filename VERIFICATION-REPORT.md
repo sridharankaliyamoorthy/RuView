@@ -41,7 +41,8 @@ Verified by command, not by reading the README.
 | 4 | **The pose stub is disclosed exactly as claimed** — `confidence: 0.0` at `inference.rs:283`, PCK@20 = 3.0% in the cog README with per-joint breakdown and a frank cause analysis. | C5 |
 | 5 | **No sensing-data exfiltration exists anywhere in the codebase.** Every external call found is an inbound fetch (registry, JWKS, models). | C9 |
 | 6 | **The Ed25519 witness chain is real cryptography**, signing canonical bytes that commit to `prev_hash`. Key management is explicitly out of repo. | SEC positives |
-| 7 | **The test suite is healthy and the badge understates it.** 3,894 passed / 0 failed / 15 ignored / 0 filtered across 183 suites, against a badge claiming 1,463 — and that excludes one crate, so the real figure is higher. | C1 |
+| 7 | **Simulated data is honestly labelled, verified at runtime.** Every data-bearing endpoint returns `"source":"simulated"`, and the dashboard carries a persistent `● Simulated` header pill plus an amber "SIMULATED / Server running without hardware" card. The concern I raised before running it does not hold. | C7, evidence/c7 |
+| 8 | **The test suite is healthy and the badge understates it.** 3,894 passed / 0 failed / 15 ignored / 0 filtered across 183 suites, against a badge claiming 1,463 — and that excludes one crate, so the real figure is higher. | C1 |
 
 ## What is not
 
@@ -59,6 +60,8 @@ Verified by command, not by reading the README.
 | 10 | **82.69% MM-Fi is a cited external result**, not reproducible from this repo — the dataset is absent and the weights are on Hugging Face. | **Medium (framing)** | C6 |
 | 11 | **`prompt-shield` "blocks replay and injection attacks"** is a 64-frame duplicate-hash check with no nonce or freshness. | **Low (misrepresentation)** | SEC-010 |
 | 12 | **The Docker default serves simulated data while `docker-compose.yml` and the entrypoint both document it as failing hard with `exit 78`.** No `exit(78)` exists in the server. Issue #1004 superseded the #937 behaviour in code; the docs were never updated. | **Medium** | C7 |
+| 13 | **A deterministic dev signing key is used by default** — `WDP_RUFIELD_SIGNING_SEED` unset means signatures from an unconfigured deployment prove nothing. | **Medium** | SEC-011 |
+| 14 | **`/api/v1/info` reports `environment: "production"` while serving simulated data**, and gives a third version number (`0.3.5`) against the package's `2.0.0a1`. | **Low** | SEC-012 |
 
 ---
 
@@ -206,7 +209,7 @@ Stated so no one mistakes silence for a pass.
 
 | Item | Why | What it would take |
 |---|---|---|
-| **C7 live probe** — does the *dashboard* prominently label simulated data? | Daemon started successfully, but a full Rust image build needed more disk than the 12 GB remaining after the native build | A machine with ~40 GB free: `docker compose up`, open the dashboard with `CSI_SOURCE` unset, and look. The API-level labelling question is **answered** (source is exposed on 6+ endpoints); the UI prominence is not. |
+| **Docker image path only** (`docker compose up`) | Image build needs more than the 12 GB left after the native build | ~40 GB free disk. **The C7 question itself is now closed** — the server was run natively instead; see `docs/spec/evidence/c7/`. |
 | **C8** — model loading, 8 KB int4 claim | `huggingface.co` 403 at the proxy (policy denial, logged) | Unrestricted egress |
 | **C6** — MM-Fi 82.69% reproduction | Dataset absent from repo; weights on HF | MM-Fi dataset access + egress |
 | **All RF / hardware claims** — through-wall, range, real-world accuracy | No ESP32, no RF environment | Real silicon. Per the repo's own rule, a successful build is not hardware evidence. |

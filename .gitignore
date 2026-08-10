@@ -261,6 +261,10 @@ v1/src/sensing/mac_wifi
 **/memory.db
 **/.claude-flow/sessions/session-*.json
 **/.claude-flow/sessions/current.json
+# Hook telemetry: the PostToolUse hook writes .claude-flow/data/*.jsonl into
+# whatever directory is current, including docs/ and evidence dirs. Never
+# commit it (see SEC-001).
+**/.claude-flow/data/
 
 # Node modules (should use npm ci, not committed)
 **/node_modules/
