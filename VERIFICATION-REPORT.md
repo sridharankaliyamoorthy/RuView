@@ -14,9 +14,10 @@ substantial work.** The core signal processing is real and I verified it against
 truth the repo has never seen: the breathing extractor recovered 6, 10, 15, 20 and 30 BPM
 with **exactly zero error**, held to −9.5 dB SNR, and correctly returned `None` on pure
 noise 20 times out of 20 — this is genuine DSP, not a bandpass filter reporting a
-plausible number. That result, plus a deterministic-proof harness that is honestly
-non-circular and a maintainer who documents his own 3.0% PCK failure four separate
-times, is a real engineering foundation. But the gap between what the README presents
+plausible number. That result, plus a test suite where **3,894 tests pass and none
+fail** (the badge's 1,463 *understates* the repo by 2.7×), a deterministic-proof harness
+that is honestly non-circular, and a maintainer who documents his own 3.0% PCK failure
+four separate times, is a real engineering foundation. But the gap between what the README presents
 and what the repository contains is wide enough to be disqualifying on its own: the
 advertised "105-cog catalog" resolves to **3 implemented cogs against 107 catalogued
 names — zero of which match**, because the catalog is a remote storefront for a
@@ -40,6 +41,7 @@ Verified by command, not by reading the README.
 | 4 | **The pose stub is disclosed exactly as claimed** — `confidence: 0.0` at `inference.rs:283`, PCK@20 = 3.0% in the cog README with per-joint breakdown and a frank cause analysis. | C5 |
 | 5 | **No sensing-data exfiltration exists anywhere in the codebase.** Every external call found is an inbound fetch (registry, JWKS, models). | C9 |
 | 6 | **The Ed25519 witness chain is real cryptography**, signing canonical bytes that commit to `prev_hash`. Key management is explicitly out of repo. | SEC positives |
+| 7 | **The test suite is healthy and the badge understates it.** 3,894 passed / 0 failed / 15 ignored / 0 filtered across 183 suites, against a badge claiming 1,463 — and that excludes one crate, so the real figure is higher. | C1 |
 
 ## What is not
 
@@ -52,7 +54,7 @@ Verified by command, not by reading the README.
 | 5 | **Sensing API is unauthenticated by default.** | **Medium–High** | SEC-004 |
 | 6 | **Published `wifi-densepose 2.0.0a1` heart rate is fail-silent** — `None` for every input via the documented API (upstream #1423, fixed in source, not in the release). | **Medium** | SEC-005, C4-B |
 | 7 | **Vitals are fabricated from noise unless the consumer checks `.status`** — 20/20 plausible in-range BPM from pure noise, all correctly flagged `Unreliable`, but `.value_bpm` is handed back regardless. | **Medium** | SEC-006, C4-D |
-| 8 | **The repo's own documented test command does not build** on a headless machine — GTK3 is pulled into the default workspace graph. | **Medium** | C1 |
+| 8 | **The repo's own documented test command does not build** on a headless machine — GTK3 is pulled into the default workspace graph, so the documented verification path is broken for CI, servers and containers. | **Medium** | C1 |
 | 9 | **MQTT defaults to plaintext 1883**, mDNS-advertised, no topic ACLs. | **Medium** | SEC-007 |
 | 10 | **82.69% MM-Fi is a cited external result**, not reproducible from this repo — the dataset is absent and the weights are on Hugging Face. | **Medium (framing)** | C6 |
 | 11 | **`prompt-shield` "blocks replay and injection attacks"** is a 64-frame duplicate-hash check with no nonce or freshness. | **Low (misrepresentation)** | SEC-010 |

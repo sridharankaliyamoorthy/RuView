@@ -8,9 +8,10 @@
 > → `true`, `git rev-list --count HEAD` → **142**, against the 1,211 commits claimed at
 > fork point. No claim resting on repo history is verifiable here.
 
-**Toolchain (measured):** rustc 1.94.1 · cargo 1.94.1 · Python 3.11.15 · node v22.22.2
-· uv 0.8.17 · Docker CLI 29.3.1 (**daemon down**) · audit venv numpy 2.4.6 / scipy
-1.17.1 / matplotlib 3.11.1.
+**Toolchain (measured):** host rustc/cargo 1.94.1, but the repo pins
+`channel = "1.89"` in `v2/rust-toolchain.toml` — **1.89 is what actually built the
+workspace** · Python 3.11.15 · node v22.22.2 · uv 0.8.17 · Docker CLI 29.3.1
+(**daemon down**) · audit venv numpy 2.4.6 / scipy 1.17.1 / matplotlib 3.11.1.
 
 **Egress (measured):** pypi + files.pythonhosted + index.crates.io + registry.npmjs
 reachable · github.com reachable · **huggingface.co 403 CONNECT (proxy policy denial)**
@@ -22,7 +23,7 @@ reachable · github.com reachable · **huggingface.co 403 CONNECT (proxy policy 
 
 | Claim | Subject | Verdict |
 |---|---|---|
-| C1 | 1,463 tests passing | **PARTIAL** — documented command does not build |
+| C1 | 1,463 tests passing | **PARTIAL** — 3,894 actually pass (badge understates); documented command does not build |
 | C2 | Deterministic proof `VERDICT: PASS` | **CONFIRMED** (proves determinism, *not* accuracy) |
 | C3 | `pip install ruview` works | **CONFIRMED** (a 3.2 KB shim over `wifi-densepose`) |
 | C4 | Vital signs from CSI | **PARTIAL** — breathing excellent; heart real but broken in the release |
@@ -53,18 +54,52 @@ workspace test graph, so `--workspace` requires desktop GUI system libraries tha
 CI-style or server environment has by default. This is not a missing Rust dependency —
 `cargo` cannot fix it; it needs OS packages.
 
-Re-run excluding that one crate:
+Re-run excluding that one crate — full output captured, not tailed:
 
 ```
 $ cargo test --workspace --no-default-features --exclude wifi-densepose-desktop
+exit=0
+
+suites:        183
+passed:        3894
+failed:        0
+ignored:       15
+measured:      0
+filtered_out:  0
 ```
 
-<!-- C1-RESULT -->
+**Verdict: PARTIAL — and the surprise runs the opposite way to expectation.**
 
-**Verdict: PARTIAL.** The blocker is reproducible and is itself the finding. Note
-separately that a *badge* number cannot be validated against a run that excludes a
-crate, and that `ignored` + `filtered out` tests are not passing tests — any number
-quoted must separate them.
+The suite is genuinely healthy: **3,894 tests pass, zero fail, zero are filtered out**,
+across 183 suites (34 of them doc-test suites). Nothing is silently compiled out behind
+feature flags in this configuration.
+
+**The badge understates the repo by 2.7×.** It claims 1,463; the measured count is
+3,894 — and that is *with* a crate excluded, so the true full-workspace figure is
+higher still. This is a stale badge, not an inflated one. Worth saying plainly given
+the audit's general direction: on this claim the repository is more conservative than
+its own marketing.
+
+The 15 `ignored` tests are each annotated with a legitimate reason, and are the kind a
+careful author marks deliberately rather than deletes:
+
+```
+tag_compare_timing_invariance_smoke ... ignored, timing smoke check — noisy host
+ann_measure::scaling_report         ... ignored, scaling study — minutes at large N
+mqtt::security::audit_plaintext_...  ... ignored, mutates global env — run serially
+ruvsense::cir::print_conditioning    ... ignored, diagnostic only
+```
+
+**The `PARTIAL` is entirely for the build blocker, not the tests.** The repo's own
+documented command — `cargo test --workspace --no-default-features`, exactly as
+`CLAUDE.md` prescribes — **cannot run on any headless machine**, because
+`wifi-densepose-desktop` drags GTK3 into the default workspace graph. That means the
+documented verification path is broken for CI, servers, and containers, and every
+number above required deviating from it.
+
+Note also that the repo pins `channel = "1.89"` in `rust-toolchain.toml` (for
+`avx512f` target-feature support in `ruvector-core`), so the 1.94.1 on this host is not
+what actually compiled the workspace.
 
 ---
 
